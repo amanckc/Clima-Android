@@ -14,6 +14,7 @@ public class ChangeCityController extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.change_city_layout);
         final EditText editTextField= (EditText) findViewById(R.id.queryET);
         ImageButton backButton= (ImageButton) findViewById(R.id.backButton);
 
@@ -32,6 +33,7 @@ public class ChangeCityController extends AppCompatActivity {
                 Intent newCityIntent=new Intent(ChangeCityController.this,WeatherController.class);
                 newCityIntent.putExtra("city",newCity);
                 startActivity(newCityIntent);
+                finish();
 
                 return false;
             }
