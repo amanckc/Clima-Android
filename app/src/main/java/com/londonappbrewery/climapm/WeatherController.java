@@ -2,6 +2,7 @@ package com.londonappbrewery.climapm;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -11,9 +12,19 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.JsonHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
+
+import org.json.JSONObject;
+
+import cz.msebera.android.httpclient.Header;
 
 
 public class WeatherController extends AppCompatActivity {
@@ -55,6 +66,13 @@ public class WeatherController extends AppCompatActivity {
 
 
         // TODO: Add an OnClickListener to the changeCityButton here:
+        changeCityButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent myIntent =new Intent(WeatherController.this,ChangeCityController.class);
+                startActivity(myIntent);
+            }
+        });
 
     }
 
@@ -64,12 +82,29 @@ public class WeatherController extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         Log.d("clima", "onResume() called");
-        Log.d("clima", "Getting weather location");
-        getWeatherForCurrentLoaction();
+        Intent myIntent=getIntent();
+        String city=myIntent.getStringExtra("city");
+
+        if (city!=null){
+            getWeatherForNewCity(city);
+        }else {
+
+
+            Log.d("clima", "Getting weather location");
+            getWeatherForCurrentLoaction();
+        }
     }
 
 
     // TODO: Add getWeatherForNewCity(String city) here:
+    private  void  getWeatherForNewCity(String city){
+        RequestParams params=new RequestParams();
+        params.put("q",city);
+        params.put("appid",APP_ID);
+        letsDoSomeNetworking(params);
+
+
+    }
 
 
     // TODO: Add getWeatherForCurrentLocation() here:
@@ -84,6 +119,11 @@ public class WeatherController extends AppCompatActivity {
 
                 Log.d("clima","longitude= "+longitude);
                 Log.d("clima","Latitude ="+latitude);
+                RequestParams params=new RequestParams();
+                params.put("lat",latitude);
+                params.put("lon",longitude);
+                params.put("appid",APP_ID);
+                letsDoSomeNetworking(params);
 
 
             }
@@ -135,15 +175,49 @@ public class WeatherController extends AppCompatActivity {
 
     }
 // TODO: Add letsDoSomeNetworking(RequestParams params) here:
+    private  void letsDoSomeNetworking(RequestParams params)
+    {
+        AsyncHttpClient client=new AsyncHttpClient();
+        client.get(WEATHER_URL,params,new JsonHttpResponseHandler(){
+            @Override
+            public  void onSuccess(int statusCode, Header[] headers, JSONObject response){
+                Log.d("clima","Successful JSON !"+response.toString());
+                WeatherDataModel  weatherData= WeatherDataModel.fromJson(response);
+                updateUI(weatherData);
+
+            }
+            @Override
+            public void onFailure(int statusCode,Header[] headers,Throwable e,JSONObject response){
+                Log.d("clima","failed "+e.toString());
+                Log.d("clima","status code "+statusCode);
+                Toast.makeText(WeatherController.this, "Request failed !!", Toast.LENGTH_SHORT).show();
+
+            }
+
+        });
+    }
 
 
 
     // TODO: Add updateUI() here:
+    private  void  updateUI(WeatherDataModel weather){
+        mTemperatureLabel.setText(weather.getmTemperature());
+        mCityLabel.setText(weather.getmCity());
 
+        int resourceID=getResources().getIdentifier(weather.getmIconName(),"drawable",getPackageName());
+        mWeatherImage.setImageResource(resourceID);
+
+    }
 
 
     // TODO: Add onPause() here:
 
 
+    @Override
+    protected void onPause() {
+        super.onPause();
 
+        if(mLocationManager!=null)
+            mLocationManager.removeUpdates(mLocationListener);
+    }
 }
